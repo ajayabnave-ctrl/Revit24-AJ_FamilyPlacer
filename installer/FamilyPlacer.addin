@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  FamilyPlacer.addin
+  ══════════════════════════════════════════════════════════════════════
+  Copy this file to ONE of the following Revit 2024 add-in locations:
+    • All users  : C:\ProgramData\Autodesk\Revit\Addins\2024\
+    • Current user: %APPDATA%\Autodesk\Revit\Addins\2024\
+  ══════════════════════════════════════════════════════════════════════
+-->
+<RevitAddIns>
+
+  <!-- ── ExternalApplication: registers the ribbon button ── -->
+  <AddIn Type="Application">
+    <Name>FamilyPlacer</Name>
+    <Assembly>FamilyPlacer.dll</Assembly>
+    <AddInId>A1B2C3D4-E5F6-7890-ABCD-EF1234567890</AddInId>
+    <FullClassName>FamilyPlacer.App</FullClassName>
+    <VendorId>YOUR_VENDOR_ID</VendorId>
+    <VendorDescription>MEP Family Placer – Grid-based placement inside Space boundaries</VendorDescription>
+  </AddIn>
+
+</RevitAddIns>
