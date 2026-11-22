@@ -1,4 +1,4 @@
-# Revit24-AJ_FamilyPlacer
+# Revit24-AJ_Revit Family Placer
 
 > Batch-place MEP families in Revit 2024 from a CSV of coordinates, or let the add-in generate a grid inside each Space. Handles ceiling-, face- and level-hosted families automatically.
 
