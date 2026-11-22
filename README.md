@@ -1,92 +1,130 @@
-# Revit24-AJ_FamilyPlacer 🚀
+# Revit24-AJ_FamilyPlacer
 
-> **Revit 2024 C# add-in for automated MEP family placement using coordinate-based CSV input and space-aware grid generation, with hosting detection and Revit unit conversion.**
+> Batch-place MEP families in Revit 2024 from a CSV of coordinates, or let the add-in generate a grid inside each Space. Handles ceiling-, face- and level-hosted families automatically.
 
 [![Revit 2024](https://img.shields.io/badge/Revit-2024-blue.svg)](https://www.autodesk.com/products/revit/overview)
-[![Framework](https://img.shields.io/badge/.NET-4.8-purple.svg)](https://dotnet.microsoft.com/download/dotnet-framework/net48)
-[![Language](https://img.shields.io/badge/C%23-7.3-green.svg)](https://docs.microsoft.com/en-us/dotnet/csharp/)
+[![.NET Framework 4.8](https://img.shields.io/badge/.NET-4.8-purple.svg)](https://dotnet.microsoft.com/download/dotnet-framework/net48)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/ajayabnave-ctrl/Revit24-AJ_FamilyPlacer)](../../releases/latest)
+
+<!-- TODO: replace with a real GIF of CSV placement -->
+![CSV placement demo](docs/demo-csv.gif)
+
+<!-- TODO: replace with a real GIF of grid placement -->
+![Grid placement demo](docs/demo-grid.gif)
 
 ---
 
-## 📌 Overview
+## What it does
 
-**Revit24-AJ_FamilyPlacer** is a powerful Autodesk Revit 2024 Add-in written in C# designed to streamline and automate the batch placement of MEP family instances (lighting fixtures, air diffusers, sprinklers, devices, etc.).
+Placing hundreds of lighting fixtures, diffusers, sprinklers or devices by hand is slow and error-prone. FamilyPlacer places them in one run and tells you which points it skipped and why.
 
-It features two placement modes:
-1. **Coordinate-Based CSV Import**: Read exact `X, Y, Z` target points directly from external CSV files.
-2. **Space-Aware Grid Engine**: Automatically calculates grid array placement points inside Revit `Space` boundaries with user-definable inward offsets and grid intervals.
+Two placement modes:
+
+1. **CSV import** - read exact `X, Y, Z` points from a file (for example, exported from DIALux, Dynamo or a spreadsheet).
+2. **Space grid** - generate a grid of points inside Revit `Space` boundaries, with a configurable inward offset and grid spacing.
+
+## Features
+
+- **Space boundary check** - points are tested with `Space.IsPointInSpace()`, so nothing lands outside irregular walls.
+- **Automatic hosting detection** - reads the family's hosting behaviour and places accordingly:
+  - **Ceiling-based**: finds the ceiling face above each point using 3D ray casting (`ReferenceIntersector`).
+  - **Face-based**: creates sketch planes on the selected reference plane.
+  - **Level-based**: places at the chosen level's elevation.
+- **Unit handling** - input in `mm`, `cm`, `m`, `ft` or `in`; converted to Revit internal units with the Revit 2024 `ForgeTypeId` / `UnitUtils` APIs.
+- **Summary report** - shows how many points were placed and how many were skipped.
+- **Ribbon button** - adds a **Place Families** button on startup.
 
 ---
 
-## ✨ Key Features
+## Install (no Visual Studio needed)
 
-* 📍 **Dual Data Sources**: Flexible placement using either pre-calculated CSV coordinates or automatic grid calculation within MEP space boundaries.
-* 🛡️ **Space Boundary Verification**: Uses `Space.IsPointInSpace()` point-in-polygon verification to prevent placing components outside irregular space walls.
-* 🎯 **Smart Hosting Detection**: Automatically detects family hosting behavior (`FAMILY_HOSTING_BEHAVIOR` parameter):
-  * **Ceiling-based**: Uses 3D raycasting (`ReferenceIntersector`) to detect intersecting ceiling faces directly above placement points.
-  * **Face-based**: Creates sketch planes on selected `ReferencePlane` geometry.
-  * **Level-based**: Places instances at specified level elevations.
-* 📏 **Revit 2024 Unit Conversion**: Uses modern `ForgeTypeId` and `UnitUtils` APIs to support seamless conversion between user display units (`mm`, `cm`, `m`, `ft`, `in`) and Revit internal feet units.
-* 🎨 **Ribbon Integration**: Automatically registers an **MEP Tools** tab and **Place Families** button on Revit startup.
+1. Download `FamilyPlacer-<version>.zip` from the [latest release](../../releases/latest).
+2. Close Revit.
+3. Unzip, then right-click `install.ps1` and choose **Run with PowerShell**. It copies the files to `C:\ProgramData\Autodesk\Revit\Addins\2024\` and writes the `.addin` manifest with the correct path.
+4. Start Revit 2024. You should see the **Place Families** button on the ribbon.
+
+**Manual install:** copy `FamilyPlacer.dll` to `C:\ProgramData\Autodesk\Revit\Addins\2024\FamilyPlacer\`, then copy `FamilyPlacer.addin` to `C:\ProgramData\Autodesk\Revit\Addins\2024\` and make sure its `<Assembly>` path points to the DLL.
+
+> Windows may block downloaded DLLs. If the add-in does not load, right-click the DLL, open **Properties** and tick **Unblock**.
 
 ---
 
-## 📁 Repository Structure
+## Usage
+
+1. Open your MEP model in Revit 2024.
+2. Click **Place Families** on the ribbon.
+3. Choose the data source: **Yes** for a CSV file, **No** for the automatic Space grid.
+4. Select the **Level**, **Space** and **Reference Plane** (as the family's hosting requires).
+5. Enter the clearance offset and grid spacing (grid mode).
+6. Pick the **Family** and **Type**.
+7. Click **OK**. A report shows placed and skipped points.
+
+### CSV format
+
+One point per row. See [`samples/points.csv`](samples/points.csv).
+
+| Column | Meaning |
+|---|---|
+| `X` | X coordinate |
+| `Y` | Y coordinate |
+| `Z` | Z coordinate (height) |
+
+- Header row: **yes** (first row is `X,Y,Z`).
+- Units: the unit you select in the dialog applies to all three columns. <!-- VERIFY against the code -->
+- Coordinates are in the same coordinate system as the Revit model. <!-- VERIFY: internal origin vs shared coordinates -->
+- Use a dot as the decimal separator.
+
+---
+
+## Known limitations
+
+<!-- VERIFY each line against the code, then edit or delete -->
+- Revit 2024 only for now. Other versions require a rebuild against that version's API.
+- Ceiling-hosted placement needs a ceiling directly above each point. Points with none are skipped and listed in the report.
+- Points outside the selected Space are skipped.
+- Linked-model ceilings: not supported yet.
+
+Found a problem? Please [open an issue](../../issues) with your Revit version, the family type and a sample of your CSV.
+
+---
+
+## Build from source
+
+**Requirements:** Revit 2024, Visual Studio 2022 (.NET desktop development workload), .NET Framework 4.8.
+
+1. Open `FamilyPlacer.sln`.
+2. Check that the references to `RevitAPI.dll` and `RevitAPIUI.dll` point to your Revit 2024 install.
+3. Set the configuration to `Release | x64` and build.
+
+Details are in [GUIDE.md](GUIDE.md).
+
+### Repository structure
 
 ```
 Revit24-AJ_FamilyPlacer/
+├── FamilyPlacer.sln
 ├── FamilyPlacer/
-│   ├── FamilyPlacer.csproj         # Visual Studio C# Project (.NET 4.8 / x64)
-│   ├── App.cs                      # IExternalApplication (Ribbon UI registration)
-│   ├── FamilyPlacerCommand.cs      # IExternalCommand (Core placement logic & UI pickers)
-│   └── UnitHelper.cs              # Unit conversion utility (ForgeTypeId / UnitUtils)
+│   ├── FamilyPlacer.csproj
+│   ├── App.cs                    # Ribbon registration (IExternalApplication)
+│   ├── FamilyPlacerCommand.cs    # Placement logic and pickers (IExternalCommand)
+│   └── UnitHelper.cs             # Unit conversion (ForgeTypeId / UnitUtils)
 ├── installer/
-│   └── FamilyPlacer.addin          # Revit Add-in manifest file
-├── GUIDE.md                        # Developer build guide and detailed user manual
-├── LICENSE                         # MIT License
-└── README.md                       # Project documentation
+│   ├── FamilyPlacer.addin        # Revit manifest
+│   └── install.ps1               # One-click installer
+├── samples/
+│   └── points.csv
+├── docs/                         # Screenshots and GIFs
+├── GUIDE.md
+├── LICENSE
+└── README.md
 ```
 
----
+## License
 
-## 🛠️ Installation & Setup
+MIT. See [LICENSE](LICENSE).
 
-### Prerequisites
-* **Autodesk Revit 2024**
-* **Visual Studio 2022** with `.NET Desktop Development` workload
-* **.NET Framework 4.8**
+## Author
 
-### 1. Build from Source
-1. Open `FamilyPlacer.sln` in Visual Studio 2022.
-2. Ensure reference paths for `RevitAPI.dll` and `RevitAPIUI.dll` point to your Revit 2024 installation:
-   `C:\Program Files\Autodesk\Revit 2024\RevitAPI.dll`
-3. Set configuration to `Release | x64` and click **Build Solution** (`Ctrl+Shift+B`).
-
-### 2. Deploy Add-in to Revit 2024
-Copy the compiled assembly and `.addin` manifest file to Revit's Addins folder:
-
-* **Copy DLL**: `FamilyPlacer.dll` → `C:\ProgramData\Autodesk\Revit\Addins\2024\FamilyPlacer\`
-* **Copy Manifest**: `installer/FamilyPlacer.addin` → `C:\ProgramData\Autodesk\Revit\Addins\2024\`
-
-*(Note: Ensure the `<Assembly>` path inside `FamilyPlacer.addin` points to the absolute location of `FamilyPlacer.dll`)*
-
----
-
-## 📖 How to Use
-
-1. Launch Autodesk Revit 2024 and open your MEP model.
-2. Navigate to the **MEP Tools** ribbon tab and click **Place Families**.
-3. **Data Source Selection**:
-   * Choose **YES** to select a CSV file containing `X, Y, Z` coordinates.
-   * Choose **NO** to use automatic Space Grid calculation.
-4. Select the target **Level**, **Space**, and **Reference Plane**.
-5. Input clearance offset and grid intervals.
-6. Select your target **Family** and **Type**.
-7. Click **OK** to execute batch placement. A summary report displaying successful vs. skipped points will be shown.
-
----
-
-## 📄 License
-
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+Ajay Abnave - BIM Manager and AEC technology professional, Pune, India.
+More tools: [github.com/ajayabnave-ctrl](https://github.com/ajayabnave-ctrl)
